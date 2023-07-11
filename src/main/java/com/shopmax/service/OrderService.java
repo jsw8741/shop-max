@@ -8,6 +8,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.thymeleaf.util.StringUtils;
 
 import com.shopmax.dto.OrderDto;
 import com.shopmax.dto.OrderHistDto;
@@ -82,4 +83,40 @@ public class OrderService {
 		// 4. 페이지 구현 객체를 생성하여 return
 		return new PageImpl<>(orderHistDtoList, pageable, countOrder);
 	}
+	
+	// 본인확인(현재 로그인한 사용자와 주문 데이터를 생성한 사용자가 같은지 검사)
+	public boolean validateOrder(Long orderId, String eamil) {
+		Member curMember = memberRepository.findByEmail(eamil);
+		Order order = orderRepository.findById(orderId)
+									 .orElseThrow(EntityNotFoundException::new);
+		
+		Member savedMember = order.getMember(); // 주문한 사용자 찾기
+		
+		// 로그인한 사용자의 이메일과 주문한 사용자의 이메일이 같은지 최종 비교
+		if(!StringUtils.equals(curMember.getEmail(), savedMember.getEmail())) {
+			return false;
+		}
+		
+		return true;
+	}
+	
+	// 주문 취소
+	public void cancelOrder(Long orderId) {
+		Order order = orderRepository.findById(orderId)
+									 .orElseThrow(EntityNotFoundException::new);
+		
+		// orderStatus update -> entity
+		order.cancelOrder();
+		
+	}
+	
+	// 주문 삭제
+	public void deldetOrder(Long orderId) {
+		Order order = orderRepository.findById(orderId)
+				 	  .orElseThrow(EntityNotFoundException::new);
+		
+		orderRepository.delete(order);
+		
+	}
+	
 }

@@ -79,12 +79,12 @@
 							<div>
 								<th:block th:if="${#strings.equals(order.orderStatus, 'ORDER')}">
 									<button type="button" class="btn btn-outline-secondary"
-									th:onclick="cancel();"	>주문취소</button>
+									th:value="${order.orderId}" onclick="cancelOrder(this.value)">주문취소</button>
 								</th:block>
 								<th:block th:unless="${#strings.equals(order.orderStatus, 'ORDER')}">
 									<p>
 										<button type="button" class="btn btn-primary"
-											th:if="${order.orderStatus == 'CANCEL'}">삭제하기</button>
+											th:value="${order.orderId}" onclick="deleteOrder(this.value)">삭제하기</button>
 									</p>
 								</th:block>
 							</div>
@@ -128,12 +128,85 @@
 <!-- 각 페이지의 스크립트가 작성될 위치 -->
 <th:block layout:fragment="script">
 	<script th:inline="javascript">
-	function cancel(){
-		if (confirm("주문을 취소하시겠습니까?")) {
-			alert('주문이 취소되었습니다.');
-			
-			// 상태 CANCEL로 바꿔주면된다.
-	    }
+	function cancelOrder(orderId) {
+		const cancelconf = confirm("주문 취소하시겠습니까?");
+		if(!cancelconf) return;
+		
+		var token = $("meta[name='_csrf']").attr("content");
+		var header = $("meta[name='_csrf_header']").attr("content");
+		
+		var url = "/order/" + orderId + "/cancel";
+		
+		//서버로 보내줄 데이터(반드시 JSON  -> string 타입으로 바꿔야한다.)
+		var paramData = {
+			orderId : orderId	
+		};
+		
+		var param = JSON.stringify(paramData);
+		
+			$.ajax({
+				url : url,
+				type : "POST", //전송방식
+				contentType : "application/json",
+				data : param,
+				beforeSend : function(xhr) {
+					//데이터를 전송하기 전에 헤더에 xsrf값
+					xhr.setRequestHeader(header, token);
+				},
+				dataType : "json",
+				cache : false,
+				success : function(result, status) {
+					var path = location.pathname;
+					var page = path.substring(path.lastIndexOf("/") + 1);
+					if(page == 'orders'){
+						page = 0;
+					}
+					
+					//주문취소 후에 해당 페이지로 이동시켜준다.
+					location.href= '/orders/' + page;
+				},
+				error : function(jqXHR, status, error) {
+					if(jqXHR.status == '401') {
+						alert('로그인 후 이용해주세요.');
+						location.href = '/member/login';
+					} else {
+						alert(jqXHR.responseText);
+					}
+				}
+			});
+	}
+	
+	function deleteOrder(orderId){
+		const deleteconf = confirm("주문 내역을 삭제하시겠습니까?");
+		if(!deleteconf) return;
+		
+		var token = $("meta[name='_csrf']").attr("content");
+		var header = $("meta[name='_csrf_header']").attr("content");
+		
+		var url = "/order/" + orderId + "/delete";
+		
+			$.ajax({
+				url : url,
+				type : "DELETE", //전송방식
+				contentType : "application/json",
+				beforeSend : function(xhr) {
+					//데이터를 전송하기 전에 헤더에 xsrf값
+					xhr.setRequestHeader(header, token);
+				},
+				dataType : "json",
+				cache : false,
+				success : function(result, status) {
+					location.href= '/orders';
+				},
+				error : function(jqXHR, status, error) {
+					if(jqXHR.status == '401') {
+						alert('로그인 후 이용해주세요.');
+						location.href = '/member/login';
+					} else {
+						alert(jqXHR.responseText);
+					}
+				}
+			});
 	}
 	
 	// 페이징버튼 눌렀을때 검색어와 selectbox를 get방식으로 주소 이동시켜준다
