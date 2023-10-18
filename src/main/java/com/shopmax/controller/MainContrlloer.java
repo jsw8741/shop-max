@@ -28,6 +28,6 @@ public class MainContrlloer {
 		model.addAttribute("items", items);
 		model.addAttribute("itemSearchDto", itemSearchDto);
 				
-		return "/main";
+		return "main";
 	}
 }
